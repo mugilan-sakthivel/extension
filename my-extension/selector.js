@@ -71,6 +71,15 @@ export function startSelectionMode(onCaptureComplete) {
 
     let currentTarget = null;
 
+    const updateOverlayPosition = () => {
+        if (!currentTarget) return;
+        const rect = currentTarget.getBoundingClientRect();
+        overlay.style.top = `${rect.top}px`;
+        overlay.style.left = `${rect.left}px`;
+        overlay.style.width = `${rect.width}px`;
+        overlay.style.height = `${rect.height}px`;
+    };
+
     const moveHandler = (e) => {
         // Prevent the panel from being selected
         const panel = document.getElementById('component-capture-panel');
@@ -78,7 +87,7 @@ export function startSelectionMode(onCaptureComplete) {
             overlay.style.display = 'none';
             return;
         }
-        
+
         overlay.style.display = 'none';
         const el = document.elementFromPoint(e.clientX, e.clientY);
         overlay.style.display = '';
@@ -86,11 +95,11 @@ export function startSelectionMode(onCaptureComplete) {
         if (!el || el === currentTarget) return;
         currentTarget = el;
 
-        const rect = el.getBoundingClientRect();
-        overlay.style.top = `${rect.top}px`;
-        overlay.style.left = `${rect.left}px`;
-        overlay.style.width = `${rect.width}px`;
-        overlay.style.height = `${rect.height}px`;
+        updateOverlayPosition();
+    };
+
+    const scrollHandler = () => {
+        updateOverlayPosition();
     };
 
     const clickHandler = (e) => {
@@ -122,7 +131,7 @@ export function startSelectionMode(onCaptureComplete) {
                 console.log("✨ Component Blueprint Created ✨");
                 onCaptureComplete(blueprint); // Pass the blueprint to the callback
             }
-            
+
             capturedElement.id = '';
         });
     };
@@ -139,11 +148,13 @@ export function startSelectionMode(onCaptureComplete) {
         document.removeEventListener("mousemove", moveHandler, true);
         document.removeEventListener("click", clickHandler, true);
         document.removeEventListener("keydown", escapeHandler, true);
+        document.removeEventListener("scroll", scrollHandler, true);
         if (overlay) overlay.remove();
     }
 
     document.addEventListener("mousemove", moveHandler, true);
     document.addEventListener("click", clickHandler, true);
     document.addEventListener("keydown", escapeHandler, true);
+    document.addEventListener("scroll", scrollHandler, true);
 }
 
