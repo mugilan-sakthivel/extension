@@ -3,6 +3,7 @@
 chrome.action.onClicked.addListener((tab) => {
     if (tab.id) {
         chrome.tabs.sendMessage(tab.id, { action: "toggleUIPanel" });
+        chrome.tabs.sendMessage(tab.id, { action: "extractDesignDNA" });
     }
 });
 

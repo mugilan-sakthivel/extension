@@ -1,0 +1,10 @@
+{
+  "name": "my-extension",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {},
+  "dependencies": {
+    "@toon-format/toon": "^1.2.0",
+    "js-yaml": "^4.1.1"
+  }
+}

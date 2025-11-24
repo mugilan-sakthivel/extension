@@ -1,4 +1,5 @@
 // This module manages the in-page UI panel.
+import { encode } from './lib/toon.js'
 
 // HTML template for the UI panel
 const panelHTML = `
@@ -28,6 +29,8 @@ const panelHTML = `
                     <input type="text" id="cc-component-name" placeholder="e.g., 'Primary Button'">
                 </div>
                 <button id="cc-select-component-btn" class="cc-btn-primary">Select Component</button>
+                <div style="margin-top: 10px; text-align: center; color: #888;">- OR -</div>
+                <button id="cc-capture-page-btn" class="cc-btn-secondary">Capture Entire Page</button>
             </div>
             <!-- View after a component has been captured -->
             <div id="cc-post-capture-view" class="hidden">
@@ -99,6 +102,8 @@ const panelCSS = `
     #component-capture-panel button { cursor: pointer; padding: 10px 15px; border: none; border-radius: 4px; font-weight: 600; }
     .cc-btn-primary { width: 100%; background-color: #007bff; color: white; font-size: 16px; }
     .cc-btn-primary:hover { background-color: #0056b3; }
+    .cc-btn-secondary { width: 100%; background-color: #6c757d; color: white; font-size: 16px; margin-top: 10px; }
+    .cc-btn-secondary:hover { background-color: #5a6268; }
     .cc-button-group { display: flex; justify-content: space-between; margin-top: 15px; }
     .cc-button-group button { width: 48%; }
     #cc-post-capture-view h4 { text-align: center; margin-top: 0; }
@@ -139,6 +144,7 @@ export const uiManager = {
     addEventListeners() {
         // Main actions
         document.getElementById('cc-select-component-btn').addEventListener('click', () => this.startSelection());
+        document.getElementById('cc-capture-page-btn').addEventListener('click', () => this.capturePage());
         document.getElementById('cc-close-btn').addEventListener('click', () => this.togglePanel());
 
         // Dummy actions
@@ -153,7 +159,7 @@ export const uiManager = {
             this.showStatus("Please enter a component name.", true);
             return;
         }
-        
+
         this.panel.classList.add('hidden'); // Hide panel during selection
 
         import(chrome.runtime.getURL('selector.js'))
@@ -175,6 +181,38 @@ export const uiManager = {
             });
     },
 
+    capturePage() {
+        this.showStatus("Capturing page...", false);
+        import(chrome.runtime.getURL('selector.js'))
+            .then(module => {
+                const blueprint = module.capturePageBlueprint();
+                if (blueprint) {
+                    this.downloadBlueprint(blueprint);
+                    this.showStatus("Page captured and downloaded!", false);
+                } else {
+                    this.showStatus("Failed to capture page.", true);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load selector module:", err);
+                this.showStatus("Error loading selector.", true);
+            });
+    },
+
+    downloadBlueprint(blueprint) {
+        const toonData = encode(blueprint);
+        const markdownContent = `# Website Blueprint\n\n\`\`\`toon\n${toonData}\n\`\`\``;
+        const blob = new Blob([markdownContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'website-blueprint.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
     createFolder() {
         const newFolderInput = document.getElementById('cc-new-folder-name');
         const folderSelect = document.getElementById('cc-folder-select');
@@ -194,11 +232,25 @@ export const uiManager = {
         const folder = document.getElementById('cc-folder-select').value;
         const componentName = document.getElementById('cc-component-name').value;
 
-        console.log("--- DUMMY SAVE ---");
+        console.log("--- COMPONENT BLUEPRINT SAVED ---");
         console.log("Saving to folder:", folder);
         console.log("Component Name:", componentName);
-        console.log("Blueprint Data:", this.capturedBlueprint);
-        
+        // console.log("Blueprint Data:", this.capturedBlueprint); // Commented out to hide screenshot data
+        const blueprintWithoutScreenshot = { ...this.capturedBlueprint };
+        delete blueprintWithoutScreenshot.screenshot;
+        console.log("Blueprint Data (without screenshot):", encode(blueprintWithoutScreenshot));
+        console.log("Blueprint Data (json):", blueprintWithoutScreenshot);
+
+        // Store the component blueprint separately
+        const storedComponents = JSON.parse(localStorage.getItem('capturedComponents') || '[]');
+        storedComponents.push({
+            folder,
+            name: componentName,
+            blueprint: this.capturedBlueprint,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('capturedComponents', JSON.stringify(storedComponents));
+
         this.showStatus(`Component "${componentName}" saved.`, false);
         this.reset();
     },
