@@ -139,25 +139,41 @@ export function startSelectionMode(onCaptureComplete) {
         });
     };
 
-    const escapeHandler = (e) => {
+    const keydownHandler = (e) => {
         if (e.key === "Escape") {
             console.log("Selection cancelled by user.");
             cleanup();
             onCaptureComplete(null); // Signal that capture was cancelled
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Select parent element
+            if (currentTarget && currentTarget.parentElement && currentTarget.parentElement !== document.body) {
+                currentTarget = currentTarget.parentElement;
+                updateOverlayPosition();
+                console.log("↑ Selected parent:", currentTarget.tagName, currentTarget.className);
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Select first child element
+            if (currentTarget && currentTarget.firstElementChild) {
+                currentTarget = currentTarget.firstElementChild;
+                updateOverlayPosition();
+                console.log("↓ Selected child:", currentTarget.tagName, currentTarget.className);
+            }
         }
     };
 
     function cleanup() {
         document.removeEventListener("mousemove", moveHandler, true);
         document.removeEventListener("click", clickHandler, true);
-        document.removeEventListener("keydown", escapeHandler, true);
+        document.removeEventListener("keydown", keydownHandler, true);
         document.removeEventListener("scroll", scrollHandler, true);
         if (overlay) overlay.remove();
     }
 
     document.addEventListener("mousemove", moveHandler, true);
     document.addEventListener("click", clickHandler, true);
-    document.addEventListener("keydown", escapeHandler, true);
+    document.addEventListener("keydown", keydownHandler, true);
     document.addEventListener("scroll", scrollHandler, true);
 }
 
