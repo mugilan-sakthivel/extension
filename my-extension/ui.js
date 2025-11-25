@@ -158,55 +158,20 @@ export const uiManager = {
 
         import(chrome.runtime.getURL('selector.js'))
             .then(module => {
-                module.startSelectionMode((result) => {
+                module.startSelectionMode((blueprint) => {
                     // This is the callback function executed when capture is complete
                     this.panel.classList.remove('hidden'); // Show panel again
 
-                    if (!result) {
-                        // Selection was cancelled
+                    if (!blueprint) {
+                        // Selection was cancelled or failed
                         return;
                     }
 
-                    // Request screenshot via content script (using window.postMessage)
-                    const { element, tempId } = result;
-
-                    // Set up one-time listener for the response
-                    const messageHandler = (event) => {
-                        if (event.data.type === 'SCREENSHOT_RESPONSE') {
-                            window.removeEventListener('message', messageHandler);
-
-                            const capturedElement = document.getElementById(tempId);
-                            const response = event.data.payload;
-
-                            if (response.error) {
-                                console.error("Screenshot failed:", response.error);
-                                this.showStatus("Screenshot failed. Please try again.", true);
-                                if (capturedElement) capturedElement.id = '';
-                                return;
-                            }
-
-                            if (response.dataUrl) {
-                                // Build the blueprint with the screenshot
-                                const blueprint = this.createComponentBlueprint(capturedElement, response.dataUrl);
-                                console.log("✨ Component Blueprint Created ✨");
-
-                                this.capturedBlueprint = blueprint;
-                                document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
-                                document.getElementById('cc-pre-capture-view').classList.add('hidden');
-                                document.getElementById('cc-post-capture-view').classList.remove('hidden');
-                            }
-
-                            if (capturedElement) capturedElement.id = '';
-                        }
-                    };
-
-                    window.addEventListener('message', messageHandler);
-
-                    // Send request to content script
-                    window.postMessage({
-                        type: 'SCREENSHOT_REQUEST',
-                        targetId: tempId
-                    }, '*');
+                    // Blueprint is already complete with screenshot
+                    this.capturedBlueprint = blueprint;
+                    document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
+                    document.getElementById('cc-pre-capture-view').classList.add('hidden');
+                    document.getElementById('cc-post-capture-view').classList.remove('hidden');
                 });
             })
             .catch(err => {
