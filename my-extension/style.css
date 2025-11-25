@@ -1,10 +1,15 @@
 #component-highlight-overlay {
-    position: fixed; /* Use fixed to stay in place relative to the viewport */
-    background-color: rgba(68, 138, 255, 0.4); /* A nice blue tint */
+    position: fixed;
+    /* Use fixed to stay in place relative to the viewport */
+    background-color: rgba(68, 138, 255, 0.4);
+    /* A nice blue tint */
     border: 1px solid #448AFF;
     border-radius: 3px;
-    pointer-events: none; /* Allows clicks to pass through to the element below */
-    z-index: 2147483647; /* Max z-index to ensure it's on top of everything */
+    pointer-events: none;
+    /* Allows clicks to pass through to the element below */
+    z-index: 2147483647;
+    /* Max z-index to ensure it's on top of everything */
     box-sizing: border-box;
-    transition: all 50ms ease-in-out; /* Smooth transition for movement */
+    /* transition: all 0ms ease-in-out; */
+    /* Smooth transition for movement */
 }

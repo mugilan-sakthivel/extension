@@ -71,6 +71,17 @@ export function startSelectionMode(onCaptureComplete) {
 
     let currentTarget = null;
 
+    // Helper function to update overlay position based on currentTarget
+    const updateOverlayPosition = () => {
+        if (!currentTarget) return;
+        
+        const rect = currentTarget.getBoundingClientRect();
+        overlay.style.top = `${rect.top}px`;
+        overlay.style.left = `${rect.left}px`;
+        overlay.style.width = `${rect.width}px`;
+        overlay.style.height = `${rect.height}px`;
+    };
+
     const moveHandler = (e) => {
         // Prevent the panel from being selected
         const panel = document.getElementById('component-capture-panel');
@@ -86,11 +97,12 @@ export function startSelectionMode(onCaptureComplete) {
         if (!el || el === currentTarget) return;
         currentTarget = el;
 
-        const rect = el.getBoundingClientRect();
-        overlay.style.top = `${rect.top}px`;
-        overlay.style.left = `${rect.left}px`;
-        overlay.style.width = `${rect.width}px`;
-        overlay.style.height = `${rect.height}px`;
+        updateOverlayPosition();
+    };
+
+    const scrollHandler = () => {
+        // Update overlay position when user scrolls
+        updateOverlayPosition();
     };
 
     const clickHandler = (e) => {
@@ -139,11 +151,13 @@ export function startSelectionMode(onCaptureComplete) {
         document.removeEventListener("mousemove", moveHandler, true);
         document.removeEventListener("click", clickHandler, true);
         document.removeEventListener("keydown", escapeHandler, true);
+        document.removeEventListener("scroll", scrollHandler, true);
         if (overlay) overlay.remove();
     }
 
     document.addEventListener("mousemove", moveHandler, true);
     document.addEventListener("click", clickHandler, true);
     document.addEventListener("keydown", escapeHandler, true);
+    document.addEventListener("scroll", scrollHandler, true);
 }
 
