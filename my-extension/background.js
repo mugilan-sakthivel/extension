@@ -1,8 +1,35 @@
+chrome.action.onClicked.addListener(async (tab) => {
+    if (!tab.id) return;
 
+    try {
+        // Try to send message to existing content script
+        await chrome.tabs.sendMessage(tab.id, { action: "toggleUIPanel" });
+    } catch (error) {
+        // Content script not loaded, inject it first
+        console.log("Content script not found, injecting...");
 
-chrome.action.onClicked.addListener((tab) => {
-    if (tab.id) {
-        chrome.tabs.sendMessage(tab.id, { action: "toggleUIPanel" });
+        try {
+            // Inject CSS
+            await chrome.scripting.insertCSS({
+                target: { tabId: tab.id },
+                files: ['style.css']
+            });
+
+            // Inject content script
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js']
+            });
+
+            // Wait a bit for content script to initialize
+            setTimeout(() => {
+                chrome.tabs.sendMessage(tab.id, { action: "toggleUIPanel" }).catch(err => {
+                    console.error("Failed to toggle panel after injection:", err);
+                });
+            }, 100);
+        } catch (injectionError) {
+            console.error("Failed to inject content script:", injectionError);
+        }
     }
 });
 
@@ -34,11 +61,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     sendResponse({ error: "Screenshot script execution failed: " + chrome.runtime.lastError.message });
                     return;
                 }
-                
+
                 if (injectionResults && injectionResults[0] && injectionResults[0].result) {
                     sendResponse({ dataUrl: injectionResults[0].result });
                 } else {
-                     // Check if html2canvas itself threw an error inside the page
+                    // Check if html2canvas itself threw an error inside the page
                     const errorResult = injectionResults[0]?.result?.error;
                     if (errorResult) {
                         sendResponse({ error: `html2canvas error: ${errorResult}` });
@@ -59,7 +86,7 @@ function takeScreenshot(targetId) {
     if (!element) {
         return { error: "Target element not found." };
     }
-    
+
     // This code runs in the page's context, so we can use a try/catch
     // to handle errors from html2canvas and return them.
     try {

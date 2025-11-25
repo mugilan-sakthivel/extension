@@ -153,26 +153,124 @@ export const uiManager = {
             this.showStatus("Please enter a component name.", true);
             return;
         }
-        
+
         this.panel.classList.add('hidden'); // Hide panel during selection
 
         import(chrome.runtime.getURL('selector.js'))
             .then(module => {
-                module.startSelectionMode((blueprint) => {
+                module.startSelectionMode((result) => {
                     // This is the callback function executed when capture is complete
                     this.panel.classList.remove('hidden'); // Show panel again
-                    if (blueprint) {
-                        this.capturedBlueprint = blueprint;
-                        document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
-                        document.getElementById('cc-pre-capture-view').classList.add('hidden');
-                        document.getElementById('cc-post-capture-view').classList.remove('hidden');
+
+                    if (!result) {
+                        // Selection was cancelled
+                        return;
                     }
+
+                    // Request screenshot via content script (using window.postMessage)
+                    const { element, tempId } = result;
+
+                    // Set up one-time listener for the response
+                    const messageHandler = (event) => {
+                        if (event.data.type === 'SCREENSHOT_RESPONSE') {
+                            window.removeEventListener('message', messageHandler);
+
+                            const capturedElement = document.getElementById(tempId);
+                            const response = event.data.payload;
+
+                            if (response.error) {
+                                console.error("Screenshot failed:", response.error);
+                                this.showStatus("Screenshot failed. Please try again.", true);
+                                if (capturedElement) capturedElement.id = '';
+                                return;
+                            }
+
+                            if (response.dataUrl) {
+                                // Build the blueprint with the screenshot
+                                const blueprint = this.createComponentBlueprint(capturedElement, response.dataUrl);
+                                console.log("✨ Component Blueprint Created ✨");
+
+                                this.capturedBlueprint = blueprint;
+                                document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
+                                document.getElementById('cc-pre-capture-view').classList.add('hidden');
+                                document.getElementById('cc-post-capture-view').classList.remove('hidden');
+                            }
+
+                            if (capturedElement) capturedElement.id = '';
+                        }
+                    };
+
+                    window.addEventListener('message', messageHandler);
+
+                    // Send request to content script
+                    window.postMessage({
+                        type: 'SCREENSHOT_REQUEST',
+                        targetId: tempId
+                    }, '*');
                 });
             })
             .catch(err => {
                 console.error("Failed to load selector module:", err);
                 this.panel.classList.remove('hidden');
             });
+    },
+
+    createComponentBlueprint(element, screenshotDataUrl) {
+        const rootBlueprint = this.buildNodeBlueprint(element);
+        return {
+            html: element.outerHTML,
+            ...rootBlueprint,
+            screenshot: screenshotDataUrl
+        };
+    },
+
+    buildNodeBlueprint(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return null;
+        }
+
+        const STYLE_WHITELIST = [
+            'display', 'flex-direction', 'justify-content', 'align-items', 'gap', 'grid-gap',
+            'width', 'height', 'padding', 'margin', 'border', 'border-radius', 'box-shadow',
+            'color', 'background-color', 'font-family', 'font-size', 'font-weight',
+            'line-height', 'letter-spacing', 'text-align', 'position', 'top', 'left',
+            'right', 'bottom', 'transform', 'opacity'
+        ];
+
+        const computedStyles = window.getComputedStyle(element);
+        const styles = {};
+        for (const prop of STYLE_WHITELIST) {
+            const value = computedStyles.getPropertyValue(prop);
+            if (value && value !== 'none' && value !== '0px' && value !== 'normal' && value !== 'auto') {
+                styles[prop] = value;
+            }
+        }
+
+        const blueprint = {
+            tag: element.tagName.toLowerCase(),
+            classes: Array.from(element.classList),
+            styles: styles,
+            children: []
+        };
+
+        if (['h1', 'h2', 'h3', 'h4', 'p', 'span', 'a', 'button', 'div'].includes(blueprint.tag)) {
+            const directText = Array.from(element.childNodes)
+                .filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+                .map(node => node.textContent.trim())
+                .join(' ');
+            if (directText) {
+                blueprint.text = directText;
+            }
+        }
+
+        element.childNodes.forEach(child => {
+            const childBlueprint = this.buildNodeBlueprint(child);
+            if (childBlueprint) {
+                blueprint.children.push(childBlueprint);
+            }
+        });
+
+        return blueprint;
     },
 
     createFolder() {
@@ -198,7 +296,7 @@ export const uiManager = {
         console.log("Saving to folder:", folder);
         console.log("Component Name:", componentName);
         console.log("Blueprint Data:", this.capturedBlueprint);
-        
+
         this.showStatus(`Component "${componentName}" saved.`, false);
         this.reset();
     },
