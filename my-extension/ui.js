@@ -8,6 +8,24 @@ const panelHTML = `
             <button id="cc-close-btn">&times;</button>
         </div>
         <div class="cc-panel-body">
+            <!-- Help section for keyboard navigation -->
+            <div class="cc-help-section">
+                <div class="cc-help-title">⌨️ Keyboard Navigation</div>
+                <div class="cc-help-content">
+                    <div class="cc-help-item">
+                        <span class="cc-key">↑</span> <strong>Up:</strong> Select parent element
+                    </div>
+                    <div class="cc-help-item">
+                        <span class="cc-key">↓</span> <strong>Down:</strong> Select first child
+                    </div>
+                    <div class="cc-help-item">
+                        <span class="cc-key">Esc</span> <strong>Cancel</strong> selection
+                    </div>
+                    <div class="cc-help-tip">
+                        💡 <strong>Tip:</strong> Use arrows to fine-tune your selection. Navigate up to capture larger sections or down to target specific nested elements.
+                    </div>
+                </div>
+            </div>
             <!-- Initial view for capturing a component -->
             <div id="cc-pre-capture-view">
                 <div class="cc-form-group">
@@ -76,6 +94,50 @@ const panelCSS = `
         color: #888;
     }
     .cc-panel-body { padding: 15px; }
+    
+    /* Help Section Styles */
+    .cc-help-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        color: white;
+    }
+    .cc-help-title {
+        font-weight: 700;
+        font-size: 13px;
+        margin-bottom: 8px;
+        opacity: 0.95;
+    }
+    .cc-help-content {
+        font-size: 12px;
+    }
+    .cc-help-item {
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .cc-key {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 24px;
+        text-align: center;
+    }
+    .cc-help-tip {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        font-size: 11px;
+        line-height: 1.4;
+        opacity: 0.9;
+    }
+    
     .cc-form-group { margin-bottom: 15px; }
     .cc-form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
     #component-capture-panel input[type="text"], #component-capture-panel select {
@@ -153,7 +215,7 @@ export const uiManager = {
             this.showStatus("Please enter a component name.", true);
             return;
         }
-        
+
         this.panel.classList.add('hidden'); // Hide panel during selection
 
         import(chrome.runtime.getURL('selector.js'))
@@ -161,18 +223,81 @@ export const uiManager = {
                 module.startSelectionMode((blueprint) => {
                     // This is the callback function executed when capture is complete
                     this.panel.classList.remove('hidden'); // Show panel again
-                    if (blueprint) {
-                        this.capturedBlueprint = blueprint;
-                        document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
-                        document.getElementById('cc-pre-capture-view').classList.add('hidden');
-                        document.getElementById('cc-post-capture-view').classList.remove('hidden');
+
+                    if (!blueprint) {
+                        // Selection was cancelled or failed
+                        return;
                     }
+
+                    // Blueprint is already complete with screenshot
+                    this.capturedBlueprint = blueprint;
+                    document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
+                    document.getElementById('cc-pre-capture-view').classList.add('hidden');
+                    document.getElementById('cc-post-capture-view').classList.remove('hidden');
                 });
             })
             .catch(err => {
                 console.error("Failed to load selector module:", err);
                 this.panel.classList.remove('hidden');
             });
+    },
+
+    createComponentBlueprint(element, screenshotDataUrl) {
+        const rootBlueprint = this.buildNodeBlueprint(element);
+        return {
+            html: element.outerHTML,
+            ...rootBlueprint,
+            screenshot: screenshotDataUrl
+        };
+    },
+
+    buildNodeBlueprint(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return null;
+        }
+
+        const STYLE_WHITELIST = [
+            'display', 'flex-direction', 'justify-content', 'align-items', 'gap', 'grid-gap',
+            'width', 'height', 'padding', 'margin', 'border', 'border-radius', 'box-shadow',
+            'color', 'background-color', 'font-family', 'font-size', 'font-weight',
+            'line-height', 'letter-spacing', 'text-align', 'position', 'top', 'left',
+            'right', 'bottom', 'transform', 'opacity'
+        ];
+
+        const computedStyles = window.getComputedStyle(element);
+        const styles = {};
+        for (const prop of STYLE_WHITELIST) {
+            const value = computedStyles.getPropertyValue(prop);
+            if (value && value !== 'none' && value !== '0px' && value !== 'normal' && value !== 'auto') {
+                styles[prop] = value;
+            }
+        }
+
+        const blueprint = {
+            tag: element.tagName.toLowerCase(),
+            classes: Array.from(element.classList),
+            styles: styles,
+            children: []
+        };
+
+        if (['h1', 'h2', 'h3', 'h4', 'p', 'span', 'a', 'button', 'div'].includes(blueprint.tag)) {
+            const directText = Array.from(element.childNodes)
+                .filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+                .map(node => node.textContent.trim())
+                .join(' ');
+            if (directText) {
+                blueprint.text = directText;
+            }
+        }
+
+        element.childNodes.forEach(child => {
+            const childBlueprint = this.buildNodeBlueprint(child);
+            if (childBlueprint) {
+                blueprint.children.push(childBlueprint);
+            }
+        });
+
+        return blueprint;
     },
 
     createFolder() {
@@ -198,7 +323,7 @@ export const uiManager = {
         console.log("Saving to folder:", folder);
         console.log("Component Name:", componentName);
         console.log("Blueprint Data:", this.capturedBlueprint);
-        
+
         this.showStatus(`Component "${componentName}" saved.`, false);
         this.reset();
     },

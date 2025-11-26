@@ -70,27 +70,79 @@ export function startSelectionMode(onCaptureComplete) {
     document.body.appendChild(overlay);
 
     let currentTarget = null;
+    let childOverlays = [];
+
+    // Helper function to update overlay position based on currentTarget
+    const updateOverlayPosition = () => {
+        if (!currentTarget) return;
+
+        // 1. Update Main Overlay
+        const rect = currentTarget.getBoundingClientRect();
+        overlay.style.top = `${rect.top}px`;
+        overlay.style.left = `${rect.left}px`;
+        overlay.style.width = `${rect.width}px`;
+        overlay.style.height = `${rect.height}px`;
+
+        // 2. Clear existing child overlays
+        childOverlays.forEach(el => el.remove());
+        childOverlays = [];
+
+        // 3. Create overlays for ALL nested descendants with depth-based colors
+        const allDescendants = currentTarget.querySelectorAll('*');
+        allDescendants.forEach(descendant => {
+            // Skip if descendant is not visible or has no dimensions
+            const descendantRect = descendant.getBoundingClientRect();
+            if (descendantRect.width === 0 || descendantRect.height === 0) return;
+
+            // Calculate depth relative to currentTarget
+            let depth = 0;
+            let element = descendant;
+            while (element && element !== currentTarget) {
+                depth++;
+                element = element.parentElement;
+            }
+
+            // Cycle through 5 colors (0-4)
+            const colorIndex = (depth - 1) % 5;
+
+            const childOverlay = document.createElement("div");
+            childOverlay.className = `child-component-highlight-depth-${colorIndex}`;
+            childOverlay.style.top = `${descendantRect.top}px`;
+            childOverlay.style.left = `${descendantRect.left}px`;
+            childOverlay.style.width = `${descendantRect.width}px`;
+            childOverlay.style.height = `${descendantRect.height}px`;
+
+            document.body.appendChild(childOverlay);
+            childOverlays.push(childOverlay);
+        });
+    };
 
     const moveHandler = (e) => {
         // Prevent the panel from being selected
         const panel = document.getElementById('component-capture-panel');
         if (panel && panel.contains(e.target)) {
             overlay.style.display = 'none';
+            childOverlays.forEach(el => el.style.display = 'none');
             return;
         }
-        
+
         overlay.style.display = 'none';
+        childOverlays.forEach(el => el.style.display = 'none');
+
         const el = document.elementFromPoint(e.clientX, e.clientY);
+
         overlay.style.display = '';
+        childOverlays.forEach(el => el.style.display = '');
 
         if (!el || el === currentTarget) return;
         currentTarget = el;
 
-        const rect = el.getBoundingClientRect();
-        overlay.style.top = `${rect.top}px`;
-        overlay.style.left = `${rect.left}px`;
-        overlay.style.width = `${rect.width}px`;
-        overlay.style.height = `${rect.height}px`;
+        updateOverlayPosition();
+    };
+
+    const scrollHandler = () => {
+        // Update overlay position when user scrolls
+        updateOverlayPosition();
     };
 
     const clickHandler = (e) => {
@@ -122,28 +174,48 @@ export function startSelectionMode(onCaptureComplete) {
                 console.log("✨ Component Blueprint Created ✨");
                 onCaptureComplete(blueprint); // Pass the blueprint to the callback
             }
-            
+
             capturedElement.id = '';
         });
     };
 
-    const escapeHandler = (e) => {
+    const keydownHandler = (e) => {
         if (e.key === "Escape") {
             console.log("Selection cancelled by user.");
             cleanup();
             onCaptureComplete(null); // Signal that capture was cancelled
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Select parent element
+            if (currentTarget && currentTarget.parentElement && currentTarget.parentElement !== document.body) {
+                currentTarget = currentTarget.parentElement;
+                updateOverlayPosition();
+                console.log("↑ Selected parent:", currentTarget.tagName, currentTarget.className);
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Select first child element
+            if (currentTarget && currentTarget.firstElementChild) {
+                currentTarget = currentTarget.firstElementChild;
+                updateOverlayPosition();
+                console.log("↓ Selected child:", currentTarget.tagName, currentTarget.className);
+            }
         }
     };
 
     function cleanup() {
         document.removeEventListener("mousemove", moveHandler, true);
         document.removeEventListener("click", clickHandler, true);
-        document.removeEventListener("keydown", escapeHandler, true);
+        document.removeEventListener("keydown", keydownHandler, true);
+        document.removeEventListener("scroll", scrollHandler, true);
         if (overlay) overlay.remove();
+        childOverlays.forEach(el => el.remove());
+        childOverlays = [];
     }
 
     document.addEventListener("mousemove", moveHandler, true);
     document.addEventListener("click", clickHandler, true);
-    document.addEventListener("keydown", escapeHandler, true);
+    document.addEventListener("keydown", keydownHandler, true);
+    document.addEventListener("scroll", scrollHandler, true);
 }
 

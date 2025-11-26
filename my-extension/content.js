@@ -11,6 +11,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
 });
 
+// Listen for messages from ui.js (via window.postMessage) and relay to background
+window.addEventListener('message', (event) => {
+    // Only accept messages from the same window
+    if (event.source !== window) return;
+
+    if (event.data.type === 'SCREENSHOT_REQUEST') {
+        const targetId = event.data.targetId;
+
+        // Forward to background script
+        chrome.runtime.sendMessage(
+            { action: "takeScreenshot", targetId: targetId },
+            (response) => {
+                // Send response back to ui.js
+                window.postMessage({
+                    type: 'SCREENSHOT_RESPONSE',
+                    payload: response || { error: chrome.runtime.lastError?.message }
+                }, '*');
+            }
+        );
+    }
+});
+
 async function togglePanel() {
     // If the UI manager hasn't been loaded yet, load it.
     if (!uiManager) {
@@ -25,7 +47,7 @@ async function togglePanel() {
             return;
         }
     }
-    
+
     // Toggle the panel's visibility
     uiManager.togglePanel();
 }

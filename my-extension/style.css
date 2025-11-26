@@ -1,10 +1,66 @@
 #component-highlight-overlay {
-    position: fixed; /* Use fixed to stay in place relative to the viewport */
-    background-color: rgba(68, 138, 255, 0.4); /* A nice blue tint */
-    border: 1px solid #448AFF;
-    border-radius: 3px;
-    pointer-events: none; /* Allows clicks to pass through to the element below */
-    z-index: 2147483647; /* Max z-index to ensure it's on top of everything */
+    position: fixed;
+    background-color: rgba(68, 138, 255, 0.15);
+    border: 2px solid #448AFF;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 2147483640;
     box-sizing: border-box;
-    transition: all 50ms ease-in-out; /* Smooth transition for movement */
+    box-shadow: 0 0 0 1px rgba(68, 138, 255, 0.2);
+}
+
+/* Depth-based color system - 5 colors that cycle */
+.child-component-highlight-depth-0 {
+    position: fixed;
+    background-color: rgba(255, 152, 0, 0.12);
+    /* Soft Orange */
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483641;
+    box-sizing: border-box;
+}
+
+.child-component-highlight-depth-1 {
+    position: fixed;
+    background-color: rgba(156, 39, 176, 0.12);
+    /* Soft Purple */
+    border: 1px solid rgba(156, 39, 176, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483642;
+    box-sizing: border-box;
+}
+
+.child-component-highlight-depth-2 {
+    position: fixed;
+    background-color: rgba(0, 150, 136, 0.12);
+    /* Soft Teal */
+    border: 1px solid rgba(0, 150, 136, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483643;
+    box-sizing: border-box;
+}
+
+.child-component-highlight-depth-3 {
+    position: fixed;
+    background-color: rgba(244, 67, 54, 0.12);
+    /* Soft Red */
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483644;
+    box-sizing: border-box;
+}
+
+.child-component-highlight-depth-4 {
+    position: fixed;
+    background-color: rgba(76, 175, 80, 0.12);
+    /* Soft Green */
+    border: 1px solid rgba(76, 175, 80, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483645;
+    box-sizing: border-box;
 }
