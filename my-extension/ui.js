@@ -51,6 +51,9 @@ const panelHTML = `
             <div id="cc-post-capture-view" class="hidden">
                 <h4>Component Captured!</h4>
                 <p id="cc-captured-name"></p>
+                <div class="cc-screenshot-container">
+                    <img id="cc-captured-screenshot" src="" alt="Captured Component Screenshot" />
+                </div>
                 <div class="cc-button-group">
                     <button id="cc-reset-btn">Reset</button>
                     <button id="cc-save-btn" class="cc-btn-primary">Save</button>
@@ -165,6 +168,24 @@ const panelCSS = `
     .cc-button-group button { width: 48%; }
     #cc-post-capture-view h4 { text-align: center; margin-top: 0; }
     #cc-post-capture-view p { text-align: center; font-style: italic; color: #555; }
+    .cc-screenshot-container {
+        text-align: center;
+        margin: 15px 0;
+        max-height: 200px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #cc-captured-screenshot {
+        max-width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        display: block;
+    }
     .cc-status { margin-top: 10px; text-align: center; }
     #component-capture-panel .hidden { display: none; }
 `;
@@ -232,6 +253,15 @@ export const uiManager = {
                     // Blueprint is already complete with screenshot
                     this.capturedBlueprint = blueprint;
                     document.getElementById('cc-captured-name').textContent = `Component: "${componentName}"`;
+
+                    const screenshotImg = document.getElementById('cc-captured-screenshot');
+                    if (blueprint.screenshot) {
+                        screenshotImg.src = blueprint.screenshot;
+                        screenshotImg.style.display = 'block';
+                    } else {
+                        screenshotImg.style.display = 'none';
+                    }
+
                     document.getElementById('cc-pre-capture-view').classList.add('hidden');
                     document.getElementById('cc-post-capture-view').classList.remove('hidden');
                 });
