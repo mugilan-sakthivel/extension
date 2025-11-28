@@ -8,6 +8,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         togglePanel();
         sendResponse({ status: "UI Toggled" });
     }
+
+    if (request.action === "authUpdated") {
+        if (uiManager) {
+            uiManager.setAuthenticatedState(request.isAuthenticated, request.user);
+        }
+    }
     return true;
 });
 

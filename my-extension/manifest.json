@@ -3,7 +3,20 @@
   "name": "Component Capture Tool",
   "version": "1.0",
   "description": "Select and capture HTML component info",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "http://localhost:5173/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:5173/*"
+    ]
+  },
   "action": {
     "default_title": "Capture Component"
   },
@@ -12,15 +25,35 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "css": ["style.css"],
-      "js": ["content.js"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": [
+        "style.css"
+      ],
+      "js": [
+        "content.js"
+      ]
+    },
+    {
+      "matches": [
+        "http://localhost:5173/extension-success"
+      ],
+      "js": [
+        "auth-content.js"
+      ]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["selector.js", "ui.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "selector.js",
+        "ui.js",
+        "code-generator.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

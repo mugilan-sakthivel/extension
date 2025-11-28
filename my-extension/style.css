@@ -1,19 +1,18 @@
 #component-highlight-overlay {
     position: fixed;
-    background-color: rgba(68, 138, 255, 0.15);
-    border: 2px solid #448AFF;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 4px;
     pointer-events: none;
     z-index: 2147483640;
     box-sizing: border-box;
-    box-shadow: 0 0 0 1px rgba(68, 138, 255, 0.2);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* Depth-based color system - 5 colors that cycle */
 .child-component-highlight-depth-0 {
     position: fixed;
     background-color: rgba(255, 152, 0, 0.12);
-    /* Soft Orange */
     border: 1px solid rgba(255, 152, 0, 0.5);
     border-radius: 2px;
     pointer-events: none;
@@ -24,7 +23,6 @@
 .child-component-highlight-depth-1 {
     position: fixed;
     background-color: rgba(156, 39, 176, 0.12);
-    /* Soft Purple */
     border: 1px solid rgba(156, 39, 176, 0.5);
     border-radius: 2px;
     pointer-events: none;
@@ -35,7 +33,6 @@
 .child-component-highlight-depth-2 {
     position: fixed;
     background-color: rgba(0, 150, 136, 0.12);
-    /* Soft Teal */
     border: 1px solid rgba(0, 150, 136, 0.5);
     border-radius: 2px;
     pointer-events: none;
@@ -46,7 +43,6 @@
 .child-component-highlight-depth-3 {
     position: fixed;
     background-color: rgba(244, 67, 54, 0.12);
-    /* Soft Red */
     border: 1px solid rgba(244, 67, 54, 0.5);
     border-radius: 2px;
     pointer-events: none;
@@ -57,7 +53,6 @@
 .child-component-highlight-depth-4 {
     position: fixed;
     background-color: rgba(76, 175, 80, 0.12);
-    /* Soft Green */
     border: 1px solid rgba(76, 175, 80, 0.5);
     border-radius: 2px;
     pointer-events: none;
