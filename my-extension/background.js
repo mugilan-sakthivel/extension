@@ -33,8 +33,84 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 });
 
-// Listens for the message from the content script to take a screenshot
+// Listens for the message from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "login") {
+        chrome.tabs.create({ url: "http://localhost:5173/login?redirect=extension" });
+        return true;
+    }
+
+    if (request.action === "loginSuccess") {
+        const userData = request.user || {};
+
+        // Validate that we have required user data
+        if (!userData.id) {
+            console.error("Login failed - missing user ID");
+            sendResponse({ status: "error", message: "Missing user ID" });
+            return true;
+        }
+
+        chrome.storage.local.set({ isAuthenticated: true, user: userData }, () => {
+            console.log("User authenticated", userData);
+            sendResponse({ status: "success" });
+
+            // Broadcast to all tabs that auth state has changed
+            chrome.tabs.query({}, (tabs) => {
+                for (const tab of tabs) {
+                    chrome.tabs.sendMessage(tab.id, {
+                        action: "authUpdated",
+                        isAuthenticated: true,
+                        user: userData
+                    }).catch(() => {
+                        // Ignore errors for tabs that don't have the content script
+                    });
+                }
+            });
+        });
+        return true;
+    }
+
+    if (request.action === "checkAuth") {
+        chrome.storage.local.get(["isAuthenticated", "user"], (result) => {
+            console.log("checkAuth - storage contents:", result);
+            sendResponse({
+                isAuthenticated: result.isAuthenticated,
+                user: result.user
+            });
+        });
+        return true;
+    }
+
+    if (request.action === "logout") {
+        console.log("Logging out from extension (clearing local storage only)");
+        // Clear local storage
+        chrome.storage.local.remove(["isAuthenticated", "user"], () => {
+            sendResponse({ status: "logged_out" });
+        });
+        return true;
+    }
+
+    if (request.action === "saveComponent") {
+        console.log("--------------------------------------------------");
+        console.log("📥 BACKGROUND: Received Component Data");
+        console.log("--------------------------------------------------");
+        console.log("Name:", request.payload.name);
+        console.log("Folder:", request.payload.folder);
+        console.log("Generated Code Preview:", request.payload.generatedCode ? request.payload.generatedCode.substring(0, 100) + "..." : "None");
+        console.log("Full Payload:", request.payload);
+        console.log("--------------------------------------------------");
+
+        // Simulate backend save delay
+        setTimeout(() => {
+            // In a real app, we would POST to the backend here
+            // For now, we'll just log success
+            console.log("Component saved successfully (mock)");
+            sendResponse({ success: true });
+        }, 500);
+
+        return true; // Keep channel open for async response
+    }
+
     if (request.action === "takeScreenshot" && sender.tab?.id) {
         const tabId = sender.tab.id;
         const targetId = request.targetId;
